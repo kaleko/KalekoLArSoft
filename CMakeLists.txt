@@ -16,7 +16,6 @@ art_make( BASENAME_ONLY
 			Simulation
 			SimulationBase
 			PhotonPropagation
-			uboone_KalekoLArSoft
                         ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_IO_SOURCES}
                         ${ART_FRAMEWORK_PRINCIPAL}
@@ -40,4 +39,4 @@ art_make( BASENAME_ONLY
 install_headers()
 install_source()
 install_fhicl()
-#add_subdirectory(job)
+add_subdirectory(job)
