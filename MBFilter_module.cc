@@ -57,61 +57,63 @@ private:
   //
   // Module utility variables
   //
-  std::string _flash_module; ///< recob::OpFlash producer module label
   std::string _gen_module;   ///< simb::MCTruth producer module label
   bool        _verbose;      ///< Verbosity flag
-  bool        _disable;      ///< Filter disable (ha-ha!)
   double      _event_ctr;    ///< A counter for the total number of events processed
 
-  //
-  // Filter parameters: 0) total PE cut or 1) multiplicity cut
-  //
-  double _beam_time_diff_low;           ///< A lower boundary of time window with which we ask for a time coincident with beam gate
-  double _beam_time_diff_high;          ///< A higher boundary of time window with which we ask for a time coincident with beam gate
-  double _total_pe_threshold;           ///< The minimum number of photo-electrons threshold to pass an event
-  bool   _enable_multiplicity_cut;      ///< Boolean to enable/disable multiplicity cut
-  unsigned int _multiplicity_threshold; ///< The minimum number of optical detectors considered to be "hit" to pass an event
-  double _multiplicity_pe_threshold;    ///< A threshold value above which PMT is considered as "hit" for multiplicity condition
+  // Particles I don't care about
+  std::vector<size_t> _pdgs_to_ignore = {
+    12, //nue
+    2112, //neutrons
+    2000000101, // genie::kPdgBindino
+  };
 
+  // Map going from PDG to cherenkov threshold ENERGY (MeV/c^2) in CH2
+  // These values taken from Georgia's thesis (they include mass) and Jocelyn Monroe's thesis
   //
-  // OpFlash analysis variables
+  std::map<size_t, float> _cherenk_thresholds_MEV =
+  { {11, 0.7},      /// e  ==> 0.7 MeV or 0.5 MeV/c
+    {211, 190.},    /// pi ==> 190 MeV or 128 MeV/c
+    {13, 144.},     /// mu ==> 144 MeV or 98 MeV/c
+    {2212, 1280.},  /// p  ==> 1280 MeV or 872 MeV/c
+    {111, 184.},    /// pi0 ==> 184 MeV/c^2 or 126 MeV/c
+    {3122, -1.},    /// lambda baryon? at any energy, throw this event away (note: still ignored if below min vis energy)
+    {321, -1.}      /// K+? same as lambda baryon
+  };
+
+  // Georgia's thesis says:
+  // "A minimum visible energy cut, Evis = Ee − me > 140 MeV, is required to reject NC events"
+  float _min_vis_energy_MEV = 140.;
+
+  // Georgia's thesis says:
+  // "An additional kinematics-based cut is used to reject mis-identified events due to interactions
+  // that take place outside the detector, or close to the fiducial volume boundary."
+  // ********* implement this fiducial volume cut! *********
+
+  //For this filter, just reject events with an electron above 1.5 GeV... they definitely aren't part of the low energy excess
+  float _max_electron_energy_MEV = 1500.;
+
+  // Output simple tree contents
   //
-  bool _do_analysis;          ///< Boolean to perform analysis or not
-  std::vector<double> _cut_v; ///< A vector to store cut values
-  std::vector<double> _eff_v; ///< A vector to store efficiencies
-  
-  //
-  // OpFlash output simple tree contents
-  //
-  bool _save_tree;           ///< Boolean to save analysis TTree or not (could be somewhat heavy, KBytes / event)
-  TTree* _flash_tree;        ///< Flash PE efficiency analysis tree, really for an easy numpy conversion
+  bool _save_tree;           ///< Boolean to save analysis TTree or not
+  TTree* _mbfilter_tree;
   unsigned int _run;         ///< Run ID
   unsigned int _subrun;      ///< SubRun ID
   unsigned int _event;       ///< Event ID
   double _nu_mc_x;           ///< Neutrino MC X position
   double _nu_mc_y;           ///< Neutrino MC Y position
   double _nu_mc_z;           ///< Neutrino MC Z position
-  std::vector<double> _pe_v; ///< PE distribution per flash
-  double _pe_total;          ///< Total PE over PMTs
-  double _dt;                ///< Time w.r.t. Trigger
-  unsigned short _nhit;      ///< Total # of hit PMT w/ > 1.0 PE
-  double _fy;                ///< Flash Y position
-  double _fy_err;            ///< Flash Y position error
-  double _fz;                ///< Flash Z position
-  double _fz_err;            ///< Flash Z position error
 
   //
   // Attribute functions
   //
   void EventClear();             ///< Clear event-wise variables
   void MakeTree();               ///< Make TTree
-  void ClearAnalysisVariables(); ///< Clear analysis variable (flash-wise)
-  void AnalyzeFlash(const recob::OpFlash& flash); ///< Analyze flash
 };
 
 
 MBFilter::MBFilter(fhicl::ParameterSet const & p)
-  : _flash_tree(nullptr)
+  : _mbfilter_tree(nullptr)
 // Initialize member data here.
 {
   // Call appropriate produces<>() functions here.
@@ -119,77 +121,29 @@ MBFilter::MBFilter(fhicl::ParameterSet const & p)
   // Module utility
   //
   _verbose                   = p.get< bool         > ( "Verbose"                 );
-  _disable                   = p.get< bool         > ( "DisableFilter"           );
-  _flash_module              = p.get< std::string  > ( "OpFlashModule"           );
   _gen_module                = p.get< std::string  > ( "NeutrinoGenerator"       );
-  if(_flash_module.empty()) {
-    std::cerr << "OpFlashModule is empty!" << std::endl;
-    throw std::exception();
-  }
-  
-  //
-  // Cut values
-  //
-  _beam_time_diff_low        = p.get< double       > ( "BeamDTLow"               );
-  _beam_time_diff_high       = p.get< double       > ( "BeamDTHigh"              );
-  _total_pe_threshold        = p.get< double       > ( "TotalPEThreshold"        );
-  _enable_multiplicity_cut   = p.get< bool         > ( "EnableMultiplicityCut"   );
-  _multiplicity_pe_threshold = p.get< double       > ( "MultiplicityPEThreshold" );
-  _multiplicity_threshold    = p.get< unsigned int > ( "MultiplicityThreshold"   );
-
-  if(_verbose) {
-    std::cout << "\033[93m" << __PRETTY_FUNCTION__ << "\033[00m" << std::endl
-	      << "  recob::OpFlash module label: " << _flash_module.c_str() << std::endl
-	      << "  DT window w.r.t. beam spill: " << _beam_time_diff_low << " => " << _beam_time_diff_high << std::endl
-	      << "  \033[95mPass condition...\033[00m " << std::endl
-	      << "  0) Flash within DT window with above " << _total_pe_threshold << " p.e." << std::endl
-	      << "  1) Flash within DT window with multiplicity of " << _multiplicity_threshold << " PMT hits with > " 
-	      << _multiplicity_pe_threshold << " p.e." << std::endl
-	      << std::endl;
-  }
 
   //
   // Analysis configuration
   //
-  _do_analysis = p.get< bool > ( "DoAnalysis" );
   _save_tree   = p.get< bool > ( "SaveTree"   );
-  if(_do_analysis) {
-    double sep = p.get< double > ( "EfficiencyPlotCutSeparation" );
-    size_t npt = p.get< size_t > ( "EfficiencyPlotNumPoints"     );
-    _cut_v.resize(npt,0);
-    _eff_v.resize(npt,0);
-    for(size_t i=0; i<npt; ++i) {
-      _cut_v[i] = i * sep;
-      _eff_v[i] = 0;
-    }
-  }
 }
 
 void MBFilter::MakeTree()
 {
   art::ServiceHandle<art::TFileService> tfs;
-  _flash_tree = tfs->make<TTree>(Form("opflash_%s_tree",_flash_module.c_str()),"OpFlash Analysis Tree");
-  
+  _mbfilter_tree = tfs->make<TTree>("mbfilter_tree", "MBFilter Module Analysis Tree");
+
   // Instantiate size of pe vector (# of opdet)
   art::ServiceHandle<geo::Geometry> geom;
-  _pe_v.resize(geom->NOpDets(),0);
-  
+
   // Simple type branch
-  _flash_tree->Branch ( "run",      &_run,      "run/i"      );
-  _flash_tree->Branch ( "subrun",   &_subrun,   "subrun/i"   );
-  _flash_tree->Branch ( "event",    &_event,    "event/i"    );
-  _flash_tree->Branch ( "nhit",     &_nhit,     "nhit/s"     );
-  _flash_tree->Branch ( "pe_total", &_pe_total, "pe_total/D" );
-  _flash_tree->Branch ( "dt",       &_dt,       "dt/D"       );
-  _flash_tree->Branch ( "fy",       &_fy,       "fy/D"       );
-  _flash_tree->Branch ( "fy_err",   &_fy_err,   "fy_err/D"   );
-  _flash_tree->Branch ( "fz",       &_fz,       "fz/D"       );
-  _flash_tree->Branch ( "fz_err",   &_fz_err,   "fz_err/D"   );
-  _flash_tree->Branch ( "nu_mc_x",  &_nu_mc_x,  "mc_nu_x/D"  );
-  _flash_tree->Branch ( "nu_mc_y",  &_nu_mc_y,  "mc_nu_y/D"  );
-  _flash_tree->Branch ( "nu_mc_z",  &_nu_mc_z,  "mc_nu_z/D"  );
-  // Object branch
-  _flash_tree->Branch ( "pe_v", "std::vector<double>", &_pe_v);
+  _mbfilter_tree->Branch ( "run",      &_run,      "run/i"      );
+  _mbfilter_tree->Branch ( "subrun",   &_subrun,   "subrun/i"   );
+  _mbfilter_tree->Branch ( "event",    &_event,    "event/i"    );
+  _mbfilter_tree->Branch ( "nu_mc_x",  &_nu_mc_x,  "mc_nu_x/D"  );
+  _mbfilter_tree->Branch ( "nu_mc_y",  &_nu_mc_y,  "mc_nu_y/D"  );
+  _mbfilter_tree->Branch ( "nu_mc_z",  &_nu_mc_z,  "mc_nu_z/D"  );
 }
 
 void MBFilter::EventClear()
@@ -198,53 +152,19 @@ void MBFilter::EventClear()
   _nu_mc_x = _nu_mc_y = _nu_mc_z = std::numeric_limits<double>::max();
 }
 
-void MBFilter::ClearAnalysisVariables()
-{
-  for(auto& v : _pe_v) v = 0;
-  _pe_total = _dt = 0;
-  _fy = _fy_err = _fz = _fz_err = 0;
-  _nhit = 0;
-}
-
-void MBFilter::AnalyzeFlash(const recob::OpFlash& flash)
-{
-  ClearAnalysisVariables();
-  
-  // Geometry service
-  art::ServiceHandle<geo::Geometry> geo;
-
-  for(unsigned int opch=0; opch<geo->MaxOpChannel(); ++opch) {
-
-    if(opch>32) continue;
-
-    auto const opdet = geo->OpDetFromOpChannel(opch);
-
-    auto const pe = flash.PE(opch);
-
-    if(pe > 1.) ++_nhit;
-    
-    _pe_v[opdet] += pe;
-
-    _pe_total += pe;
-  }
-
-  _dt = flash.Time();
-  _fy = flash.YCenter();
-  _fz = flash.ZCenter();
-  _fy_err = flash.YWidth();
-  _fz_err = flash.ZWidth();
-
-  if(_flash_tree) _flash_tree->Fill();
-}
 
 bool MBFilter::filter(art::Event & e)
 {
+
+  bool return_value = true;
+  size_t n_electrons = 0;
+  size_t n_additional_subevents = 0;
   //
   // Analysis preparation
   //
-  if(_do_analysis || _save_tree) {
+  if (_save_tree) {
 
-    if(!_flash_tree) MakeTree();
+    if (!_mbfilter_tree) MakeTree();
 
     EventClear();
   }
@@ -257,163 +177,103 @@ bool MBFilter::filter(art::Event & e)
   _event  = e.id().event();
   _event_ctr += 1; // Increment total event ctr
 
-  // Retrieve Neutrino Info if there is
+  // Retrieve Neutrino Interaction Info
   art::Handle< std::vector< simb::MCTruth > > mct_handle;
   e.getByLabel( _gen_module, mct_handle );
-  if(mct_handle.isValid() && mct_handle->size()) {
-    bool nu_set=false;
-    for(auto const& mct : (*mct_handle)) {
+  if (mct_handle.isValid() && mct_handle->size()) {
+    bool nu_set = false;
+    if ( mct_handle->size() != 1 )
+      std::cout << "\n\n\n\n\n\n\n i have no idea what is going on. mct size is " << mct_handle->size() << "\n\n\n\n\n\n\n" << std::endl;
 
-      if(mct.Origin() != simb::kBeamNeutrino) continue;
-      
-      for(size_t part_index=0; part_index<(size_t)(mct.NParticles()); ++part_index) {
-	
-	auto const& part = mct.GetParticle(part_index);
-	
-	if(part.StatusCode() == 1) {
-	  
-	  _nu_mc_x = part.Position(0)[0];
-	  _nu_mc_y = part.Position(0)[1];
-	  _nu_mc_z = part.Position(0)[2];
-	  nu_set=true;
-	  break;
-	}
-      }
-      if(nu_set) break;
-    }
-  }
 
-  // Retrieve OpFlash
-  art::Handle< std::vector< recob::OpFlash > > flash_handle;
-  e.getByLabel( _flash_module, flash_handle );
+    for (auto const& mct : (*mct_handle)) {
 
-  // Geometry service
-  art::ServiceHandle<geo::Geometry> geo;
-
-  bool   pass = false;
-  double flash_min_npe = -1;
-  // If valid, perform
-  if(flash_handle.isValid()) {
-    for(auto const& flash : *flash_handle) {
-      
-      if(_flash_tree) AnalyzeFlash(flash);
-
-      // Check timing
-      if(flash.Time() < _beam_time_diff_low || _beam_time_diff_high < flash.Time()) {
-	if(_verbose)
-	  std::cout << "  Skipping a flash @ DT = " << flash.Time() << " [us] " << std::endl;
-	continue;
+      if (mct.Origin() != simb::kBeamNeutrino) {
+        std::cout << "\n\n\n\n\n\n\n wtf mct.Origin() is not simb::kBeamNeutrino?!?!?! \n\n\n\n\n\n\n\n\n" << std::endl;
+        continue;
       }
 
-      auto const npe = flash.TotalPE();
+      if (_verbose)
+        std::cout << "MBFilter looping over " << mct.NParticles() << " particles in this event... " << std::endl;
 
-      if(flash_min_npe < 0 || npe < flash_min_npe) flash_min_npe = npe;
+      /// Loop over particles coming from the neutrino interaction, and filter the event if this event wouldn't pass miniboone cuts
+      /// IE based on number of electrons, number of subevents (above cherenkov threshold), etc
+      for (size_t part_index = 0; part_index < (size_t)(mct.NParticles()); ++part_index) {
+        auto const& part = mct.GetParticle(part_index);
 
-      if(pass) continue;
+        // MBFilter looping over 9 particles in this event...
+        // Particle 0 has PDG 12 and StatusCode 0.
+        // Particle 1 has PDG 1000180400 and StatusCode 0.
+        // Particle 2 has PDG 2112 and StatusCode 11.
+        // Particle 3 has PDG 1000180390 and StatusCode 2.
+        // Particle 4 has PDG 11 and StatusCode 1.
+        // Particle 5 has PDG 2212 and StatusCode 14.
+        // Particle 6 has PDG 2212 and StatusCode 1.
+        // Particle 7 has PDG 2000000002 and StatusCode 15.
+        // Particle 8 has PDG 2000000101 and StatusCode 1.
 
-      // Check Total PE level
-      if( npe >= _total_pe_threshold )
-	pass = true;
-      
-      // Check multiplicity
-      unsigned int mult=0;
-      for(size_t i=0; i < geo->NOpDets(); ++i )
-	if(flash.PE(i) >= _multiplicity_pe_threshold) mult+=1;
+        //Note, when counting final state particles, ignore any particles that don't have status code == 1
+        if (part.StatusCode() != 1) continue;
 
-      if(_enable_multiplicity_cut && mult >= _multiplicity_threshold)
-	  pass = true;
+        double E_MEV  = part.Trajectory().E(0) * 1000.;
+        size_t PDG = abs(part.PdgCode());
 
-      if(pass) {
-	if(_verbose)
-	  std::cout << "  Accepting a flash @ " << flash.Time() << " [us] with " << npe << " [p.e.]" << " ... multiplicity = " << mult << std::endl;
-      }
-    }
-  }
+        if (_verbose)
+          std::cout << "\t Particle " << part_index
+                    << "\tPDG " << PDG
+                    << "\tStatusCode " << part.StatusCode()
+                    << "\tEnergy " << E_MEV
+                    << "." << std::endl;
 
-  for(size_t i=0; i<_cut_v.size(); ++i) {
-    if(flash_min_npe > _cut_v[i]) _eff_v[i] +=1;
-    else break;
-  }
+        //If this PDG is one that I want to ignore in this filter, continue
+        if (std::find(_pdgs_to_ignore.begin(), _pdgs_to_ignore.end(), PDG) != _pdgs_to_ignore.end()) {
+          if (_verbose)
+            std::cout << " Ignoring this particle!" << std::endl;
+          continue;
+        }
 
-  pass = (_disable ? true : pass);
-  if(_verbose)
-    std::cout << (pass ? "\033[93m PASS \033[00m" : "\033[93m FILTERED \033[00m") << std::endl;
+        //Make sure I have a recorded cherenkov threshold for this type of particle
+        if (!_cherenk_thresholds_MEV.count(PDG)) 
+          throw std::invalid_argument( Form("PDG %zu not in std::map of cherenkov thresholds!", PDG) );
 
-  return pass;
-}
+        // If this particle is an electron above like 1.5 GeV, it's not part of the low energy excess... just skip event
+        if ( E_MEV > _max_electron_energy_MEV )
+          return false;
+
+        // If this particle is below cherenkov threshold, ignore it
+        if ( E_MEV < _cherenk_thresholds_MEV[PDG]) {
+          if (_verbose) std::cout << " This particle below cherenkov threshold!" << std::endl;
+          continue;
+        }
+
+        //If this particle is an electron above minimum energy cut, count it
+        if (PDG == 11 && E_MEV > _min_vis_energy_MEV) n_electrons++;
+        else n_additional_subevents++;
+
+        // I think this is the neutrino information? Store it in ttree.
+        if (part.StatusCode() == 1 && !nu_set) {
+          _nu_mc_x = part.Position(0)[0];
+          _nu_mc_y = part.Position(0)[1];
+          _nu_mc_z = part.Position(0)[2];
+          nu_set = true;
+        }
+      } // End loop over particles
+    } // End loop over (1) mctruths
+  } // End if mctruth handle is valid
+
+  if (_verbose) std::cout << " # of electrons = " << n_electrons << ", # of additional subevents = " << n_additional_subevents << std::endl;
+
+  if (n_electrons != 1 || n_additional_subevents)
+    return_value = false;
+
+  _mbfilter_tree->Fill();
+  return return_value;
+
+} // End MBFilter::filter()
 
 void MBFilter::endJob()
 {
-
-  if(!_flash_tree) return;
-
-  if(_do_analysis) {
-    std::cout << "\033[93m<" << __PRETTY_FUNCTION__ << ">\033[00m Performing analysis..." << std::endl;
-
-    art::ServiceHandle<art::TFileService> tfs;    
-    //
-    // 1D Efficiency plot against PE cut
-    //
-    double total_events = (double)_event_ctr;
-    std::vector<double> _eff_err_v(_eff_v.size(),0);
-    std::vector<double> _null_v(_eff_v.size(),0);
-    for(size_t i=0; i<_eff_v.size(); ++i) {
-      auto& v = _eff_v[i];
-      _eff_err_v[i] = sqrt(v * (1.-v/total_events)) / total_events;
-      v /= total_events;
-    }    
-
-    TFile* fout = TFile::Open("flash_trigger_ana.root","RECREATE");
-    /*
-    auto gEff = tfs->make<TGraphErrors>(200,
-					&_cut_v[0],&_eff_v[0],
-					&_null_v[0],&_eff_err_v[0]);
-    */
-    auto gEff = new TGraphErrors(200,
-				 &_cut_v[0],&_eff_v[0],
-				 &_null_v[0],&_eff_err_v[0]);
-    gEff->SetName("gEff");
-    gEff->SetTitle("Photo-Electron (P.E.) Cut Efficiency; Cut Value [P.E.]; Events");
-    gEff->SetMarkerSize(1);
-    gEff->SetMarkerStyle(22);
-    gEff->SetMarkerColor(kBlue);
-
-    //
-    // Flash Time distribution
-    //
-    /*
-    auto hFlashTime = tfs->make<TH1D>("hFlashTime",
-				      Form("OpFlash Time Distribution (>%g P.E.); #DeltaT w.r.t. Trigger [#mus];OpFlash Count",
-					   _total_pe_threshold),
-				      800,-3200,3200);
-    auto hFlashTimeZoom = tfs->make<TH1D>("hFlashTimeZoom",
-					  Form("OpFlash Time Distribution (>%g P.E.); #DeltaT w.r.t. Trigger [#mus];OpFlash Count",
-					       _total_pe_threshold),
-					  800,-100,100);
-    */
-    auto hFlashTime = new TH1D("hFlashTime",
-			       Form("OpFlash Time Distribution (>%g P.E.); #DeltaT w.r.t. Trigger [#mus];OpFlash Count",
-				    _total_pe_threshold),
-			       800,-3200,3200);
-    auto hFlashTimeZoom = new TH1D("hFlashTimeZoom",
-				   Form("OpFlash Time Distribution (>%g P.E.); #DeltaT w.r.t. Trigger [#mus];OpFlash Count",
-					_total_pe_threshold),
-				   800,-100,100);
-    _flash_tree->Draw(Form("dt>>%s",hFlashTime->GetName()),
-		      Form("pe_total>%g",_total_pe_threshold));
-
-    _flash_tree->Draw(Form("dt>>%s",hFlashTimeZoom->GetName()),
-		      Form("pe_total>%g",_total_pe_threshold));
-
-    fout->cd();
-    gEff->Write();
-    hFlashTime->Write();
-    hFlashTimeZoom->Write();
-    fout->Close();
-  }
-
-  if(!_save_tree) _flash_tree->Delete("all");
-    
+  if (!_mbfilter_tree) return;
 }
 
 DEFINE_ART_MODULE(MBFilter)
