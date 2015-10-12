@@ -62,7 +62,7 @@ private:
   double      _event_ctr;    ///< A counter for the total number of events processed
 
   // Particles I don't care about
-  std::vector<size_t> _pdgs_to_ignore = {
+  std::set<size_t> _pdgs_to_ignore = {
     12, //nue
     2112, //neutrons
     2000000101, // genie::kPdgBindino
@@ -226,14 +226,14 @@ bool MBFilter::filter(art::Event & e)
                     << "." << std::endl;
 
         //If this PDG is one that I want to ignore in this filter, continue
-        if (std::find(_pdgs_to_ignore.begin(), _pdgs_to_ignore.end(), PDG) != _pdgs_to_ignore.end()) {
+        if (_pdgs_to_ignore.find(PDG) != _pdgs_to_ignore.end()) {
           if (_verbose)
             std::cout << " Ignoring this particle!" << std::endl;
           continue;
         }
 
         //Make sure I have a recorded cherenkov threshold for this type of particle
-        if (!_cherenk_thresholds_MEV.count(PDG)) 
+        if (!_cherenk_thresholds_MEV.count(PDG))
           throw std::invalid_argument( Form("PDG %zu not in std::map of cherenkov thresholds!", PDG) );
 
         // If this particle is an electron above like 1.5 GeV, it's not part of the low energy excess... just skip event
