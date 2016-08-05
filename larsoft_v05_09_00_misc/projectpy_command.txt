@@ -1,0 +1,1 @@
+project.py --xml grid_jobs_intimecosmic.xml --stage litescanner --submit

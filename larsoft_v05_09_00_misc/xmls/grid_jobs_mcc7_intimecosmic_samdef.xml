@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+
+<!-- Production Project -->
+
+<!DOCTYPE project [
+<!ENTITY release      "v05_09_00" >
+<!ENTITY file_type    "mc"      >
+<!ENTITY run_type     "physics"   >
+<!ENTITY name         "kaleko_mcc7_intimecosmic_samdef_fullsample_071116">
+<!ENTITY prod_version "v1"        >
+<!ENTITY tardir       "/pnfs/uboone/persistent/users/kaleko/tars">
+]>
+
+<job>
+
+  <project name="&name;">
+    
+    <!-- Project size -->
+    <numevents>200000000</numevents>
+    
+    <!-- Operating System -->
+    <os>SL6</os>
+    
+    <!-- Batch resources -->
+    <resource>DEDICATED,OPPORTUNISTIC</resource>
+    
+    <!-- Larsoft information -->
+    <larsoft>
+      <tag>&release;</tag>
+      <qual>e9:prof</qual>
+      <local>&tardir;/kaleko_05_09_00_new.tar</local>
+    </larsoft>
+    
+    <!-- Project stages -->
+    
+    <stage name="litescanner">
+      <!--<inputlist>/pnfs/uboone/persistent/users/kaleko/filepaths_10k_BNB_cosmics.txt</inputlist>-->
+      <inputdef>prodcosmics_corsika_inTime_uboone_mcc7_reco2</inputdef>
+      <fcl>larlite_maker_kalekocustom.fcl</fcl>
+      <outdir>/pnfs/uboone/scratch/users/kaleko/&name;_larlite_out/&release;</outdir>
+      <logdir>/pnfs/uboone/scratch/users/kaleko/&name;_larlite_log/&release;</logdir>
+      <workdir>/pnfs/uboone/scratch/users/kaleko/&name;_larlite_work/&release;</workdir>
+      <maxfilesperjob>165</maxfilesperjob>
+      <numjobs>120</numjobs>
+      <!-- <datatier>scanned</datatier> -->
+      <!--    <defname>&name;_&prod_version;</defname> -->
+    </stage>
+
+    <!-- file type -->
+    <!--  <filetype>&file_type;</filetype> -->
+    
+    <!-- run type -->
+    <!--  <runtype>&run_type;</runtype> --> 
+    
+  </project>
+  
+</job>

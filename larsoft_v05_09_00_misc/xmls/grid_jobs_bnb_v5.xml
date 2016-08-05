@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+
+<!-- Production Project -->
+
+<!DOCTYPE project [
+<!ENTITY release      "v05_09_00" >
+<!ENTITY file_type    "data"      >
+<!ENTITY run_type     "physics"   >
+<!ENTITY name         "kaleko_DATA_bnb_v5">
+<!ENTITY prod_version "v1"        >
+<!ENTITY tardir       "/pnfs/uboone/persistent/users/kaleko/tars">
+]>
+
+<job>
+
+  <project name="&name;">
+    
+    <!-- Project size -->
+    <numevents>99999999</numevents>
+    
+    <!-- Operating System -->
+    <os>SL6</os>
+    
+    <!-- Batch resources -->
+    <resource>DEDICATED,OPPORTUNISTIC</resource>
+    
+    <!-- Larsoft information -->
+    <larsoft>
+      <tag>&release;</tag>
+      <qual>e9:prof</qual>
+      <local>&tardir;/kaleko_05_09_00.tar</local>
+    </larsoft>
+    
+    <!-- Project stages -->
+    
+    <stage name="litescanner">
+      <!-- <inputlist>/pnfs/uboone/persistent/users/kaleko/filepaths_CCInclusive_BNB_cosmics_sample.txt</inputlist> -->
+      <inputdef>prod_bnb_reco_inclusive_v5</inputdef>
+      <fcl>larlite_maker_kalekocustom_DATA.fcl</fcl>
+      <outdir>/pnfs/uboone/scratch/users/kaleko/&name;_larlite_out/&release;</outdir>
+      <logdir>/pnfs/uboone/scratch/users/kaleko/&name;_larlite_log/&release;</logdir>
+      <workdir>/pnfs/uboone/scratch/users/kaleko/&name;_larlite_work/&release;</workdir>
+  
+      <!-- roughly 40 events per file -->
+      <!-- each job gets 5 unique files, so 200 evts per job -->
+      <maxfilesperjob>5</maxfilesperjob>
+      <numjobs>200</numjobs>
+      <!-- 40k total events, for now... actual samdef has WAY more -->
+
+    </stage>
+  </project>
+  
+</job>

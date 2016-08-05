@@ -1,0 +1,38 @@
+#include "litemaker_base.fcl"
+
+BEGIN_PROLOG
+
+litemc_combo: @local::litemaker_base
+
+litemc_combo.out_filename: "larlite_opreco_reco3dpandora.root"
+
+litemc_combo.DataLookUpMap:
+{
+  potsummary: ["bnbETOR875,bnbETOR860"]
+  vertex:     ["pandoraNu","pmtrack"]
+  track:      ["pandoraNuPMA","trackkalmanhit","pandoraNu"]
+  #track:      ["pandoraNu","pandoraNuPMA","trackkalmanhit","stitchkalmanhit","trackkalmanhitcc","stitchkalmanhitcc","cctrack","pandoraCosmic","pandoraNuKHit"]
+  #shower:     ["showerrecopandora"]
+  calo:       ["pandoraNuPMAcalo","pandoraNucalo"]
+  #pfpart:     ["pandoraNu"]
+  opflash:    ["opflashSat"]
+  hit:        ["gaushit"]
+}
+
+litemc_combo.AssociationLookUpMap: {
+  #hit:        ["pandoraCosmicKHitFlashMatch","pandoraNuKHitFlashMatch"]
+  #cluster:    ["pandoraNu"]
+  #sps:        ["pandoraNu"]
+  vertex:     ["pandoraNu","pmtrack"]
+  track:      ["pandoraNuPMA","trackkalmanhit","pandoraNu"]
+  #track:      ["pandoraNu","pandoraNuPMA","trackkalmanhit","stitchkalmanhit","trackkalmanhitcc","stitchkalmanhitcc","cctrack","pandoraCosmic","pandoraNuKHit"]
+  #seed:       ["pandoraNu"]
+  #shower:     ["showerrecopandora"]
+  calo:       ["pandoraNuPMAcalo","pandoraNucalo"]
+  #pfpart:     ["pandoraNu"]
+  opflash:    ["opflashSat"]
+  hit: ["gaushit"]
+
+}
+
+END_PROLOG

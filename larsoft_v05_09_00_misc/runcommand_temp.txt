@@ -1,0 +1,1 @@
+lar -c larlite_maker_kalekocustom.fcl -s /uboone/data/users/kaleko/test_prodgenie_bnb_nu_cosmic_uboone_reco2.root

@@ -1,0 +1,35 @@
+#include "litemaker_base.fcl"
+
+BEGIN_PROLOG
+
+litemc_combo: @local::litemaker_base
+
+litemc_combo.out_filename: "larlite_opreco_reco3dpandora.root"
+
+litemc_combo.DataLookUpMap:
+{
+  potsummary: ["bnbETOR875,bnbETOR860"]
+  vertex:     ["pandoraNu","pmtrack"]
+  track:      ["pandoraNu","pandoraNuPMA"]
+  #shower:     ["showerrecopandora"]
+  calo:       ["pandoraNuPMAcalo"]
+  pfpart:     ["pandoraNu"]
+  opflash:    ["opflashSat"]
+  #hit:        ["pandoraCosmicKHitRemoval"]
+}
+
+litemc_combo.AssociationLookUpMap: {
+  #hit:        ["pandoraCosmicKHitFlashMatch","pandoraNuKHitFlashMatch"]
+  cluster:    ["pandoraNu"]
+  #sps:        ["pandoraNu"]
+  vertex:     ["pandoraNu","pmtrack"]
+  track:      ["pandoraNu","pandoraNuPMA"]
+  #seed:       ["pandoraNu"]
+  shower:     ["showerrecopandora"]
+  calo:       ["pandoraNuPMAcalo"]
+  pfpart:     ["pandoraNu"]
+  opflash:    ["opflashSat"]
+
+}
+
+END_PROLOG

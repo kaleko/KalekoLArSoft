@@ -1,0 +1,22 @@
+diff --git a/scripts/project.py b/scripts/project.py
+index 037bac6..d47f302 100755
+--- a/scripts/project.py
++++ b/scripts/project.py
+@@ -2437,7 +2437,7 @@ def dojobsub(project, stage, makeup):
+         jobinfo = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+         thread = threading.Thread(target=project_utilities.wait_for_subprocess, args=[jobinfo, q])
+         thread.start()
+-        thread.join(timeout=60)
++        thread.join(timeout=600)
+         if thread.is_alive():
+             jobinfo.terminate()
+             thread.join()
+@@ -2466,7 +2466,7 @@ def dojobsub(project, stage, makeup):
+             thread = threading.Thread(target=project_utilities.wait_for_subprocess,
+                                       args=[jobinfo, q])
+             thread.start()
+-            thread.join(timeout=60)
++            thread.join(timeout=600)
+             if thread.is_alive():
+                 jobinfo.terminate()
+                 thread.join()

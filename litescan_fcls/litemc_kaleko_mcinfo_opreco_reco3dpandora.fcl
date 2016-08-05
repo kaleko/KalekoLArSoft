@@ -1,0 +1,65 @@
+#include "litemaker_base.fcl"
+
+BEGIN_PROLOG
+
+litemc_combo: @local::litemaker_base
+
+litemc_combo.out_filename: "larlite_mcinfo_opreco_reco3dpandora.root"
+
+litemc_combo.pot_labels: ["generator"]
+
+litemc_combo.DataLookUpMap:
+{
+  potsummary: ["generator"]
+  gtruth:     ["generator"]
+  mcflux:     ["generator"]
+  mctruth:    ["generator","corsika"]
+  mctrack:    ["mcreco"]
+  mcshower:   ["mcreco"]
+  #sps:        ["pandoraCosmic","pandoraNu",
+  #             "pandoraCosmicKHit","pandoraNuKHit"]
+  #pcaxis:     []
+  vertex:     ["pandoraNu"]
+  track:      ["pandoraNu"]
+  #seed:       ["pandoraCosmic","pandoraNu"]
+  shower:     ["showerrecopandora"]
+  pfpart:     ["pandoraNu"]
+  #cosmictag:  ["pandoraCosmicKHittag","pandoraNuKHittag",
+  #             "pandoraCosmicKHitFlashMatch","pandoraNuKHitFlashMatch",
+  #             "pandoraCosmicKHitPFPart"]
+  #calo:       ["pandoraNuKHitcalo","pandoraCosmicKHitcalo"]
+  #partid:     ["pandoraNuKHitpid","pandoraCosmicKHitpid"]
+  #ophit: ["ophit","ophitSat","ophitT","ophitFW","ophitSW","ophitCFD",
+  #        "ophitSatT","ophitSatFW","ophitSatSW","ophitSatCFD"]
+
+  opflash: ["opflashSat"]
+            #"sflashT","sflashFW","sflashSW","sflashCFD",
+            #"sflashSatT","sflashSatFW","sflashSatSW","sflashSatCFD"]
+  hit:        ["gaushit"]
+}
+
+litemc_combo.AssociationLookUpMap: {
+  mctruth: ["generator","corsika"]
+  hit:        ["gaushit"]
+  cluster:    ["pandoraNu"]
+  sps:        ["pandoraNu"]
+  #pcaxis:     []
+  vertex:     ["pandoraNu"]
+  track:      ["pandoraNu"]
+  seed:       ["pandoraNu"]
+  shower:     ["showerrecopandora"]
+  pfpart:     ["pandoraNu"]
+  #cosmictag:  ["pandoraCosmicKHittag","pandoraNuKHittag",
+  #             "pandoraCosmicKHitFlashMatch","pandoraNuKHitFlashMatch",
+  #             "pandoraCosmicKHitPFPart"]
+  #calo:       ["pandoraNuKHitcalo","pandoraCosmicKHitcalo"]
+  #partid:     ["pandoraNuKHitpid","pandoraCosmicKHitpid"]
+  #ophit: ["ophit","ophitSat","ophitT","ophitFW","ophitSW","ophitCFD",
+  #        "ophitSatT","ophitSatFW","ophitSatSW","ophitSatCFD"]
+
+  opflash: ["opflashSat"]#["opflash","opflashSat",
+            #"sflashT","sflashFW","sflashSW","sflashCFD",
+            #"sflashSatT","sflashSatFW","sflashSatSW","sflashSatCFD"]
+}
+
+END_PROLOG

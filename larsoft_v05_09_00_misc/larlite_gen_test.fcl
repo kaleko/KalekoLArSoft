@@ -1,0 +1,299 @@
+#include "services_microboone.fcl"
+
+  litemaker_base:
+  {
+    # module name
+    module_type:       "LiteScanner"
+    # boolean to decide whether or not to store association
+    store_association: true
+    # output file name
+    out_filename:      "larlite_all.root"
+  }
+
+  process_name: LiteMaker
+services:
+{
+  # Load the service that manages root files for histograms.
+  TFileService: { fileName: "ana_hist.root" }
+  Timing:       {}
+  RandomNumberGenerator: {} #ART native random number generator
+  message:      @local::standard_warning
+  user:         @local::microboone_services        
+}
+
+source:
+{
+  module_type: RootInput
+  maxEvents:  -1        # Number of events to create
+}
+
+physics:
+{
+  analyzers:
+  {
+    scanner: @local::litemaker_base
+  }
+  analyzeIt: [ scanner ]
+  end_paths: [ analyzeIt ]
+}
+
+physics.analyzers.scanner: @local::litemaker_base
+physics.analyzers.scanner.out_filename: "larlite_all.root"
+physics.analyzers.scanner.pot_labels: ["generator"]
+physics.analyzers.scanner.DataLookUpMap:
+{
+  mctruth : [ 
+    "generator"
+  ]
+  hit : [ 
+    "gaushit",
+    "linecluster",
+    "pandoraCosmicKHitRemoval"
+  ]
+  mctrack : [ 
+    "mcreco"
+  ]
+  track : [ 
+    "stitchkalmanhit",
+    "trackkalmanhit",
+    "pandoraCosmic",
+    "pandoraCosmicKHit",
+    "pandoraNu",
+    "pandoraNuKHit",
+    "pandoraNuPMA",
+    "pmtrack"
+  ]
+  mcshower : [ 
+    "mcreco"
+  ]
+  sps : [ 
+    "trackkalmanhit",
+    "pandoraCosmic",
+    "pandoraCosmicKHit",
+    "pandoraNu",
+    "pandoraNuKHit",
+    "pandoraNuPMA",
+    "pmtrack"
+  ]
+  vertex : [ 
+    "linecluster",
+    "pandoraCosmic",
+    "pandoraNu",
+    "pandoraNuPMA",
+    "pmtrack"
+  ]
+  fifo : [ 
+    "optfem"
+  ]
+  cluster : [ 
+    "fuzzycluster",
+    "fuzzyclustermerger",
+    "linecluster",
+    "pandoraCosmic",
+    "pandoraNu"
+  ]
+  cosmictag : [ 
+    "stitchkalmanhitContTag",
+    "stitchkalmanhittag",
+    "trackkalmanhitContTag",
+    "trackkalmanhittag",
+    "pandoraCosmicContTag",
+    "pandoraCosmicKHitFlashMatch",
+    "pandoraCosmicKHitPFPart",
+    "pandoraCosmicKHittag",
+    "pandoraCosmictag",
+    "pandoraNuContTag",
+    "pandoraNuKHitFlashMatch",
+    "pandoraNuKHittag",
+    "pandoraNuPMAContTag",
+    "pandoraNuPMAtag",
+    "pandoraNutag",
+    "pmtrackContTag",
+    "pmtracktag"
+  ]
+  pfpart : [ 
+    "pandoraCosmic",
+    "pandoraNu",
+    "pandoraNuPMA",
+    "pmtrack"
+  ]
+  seed : [ 
+    "pandoraCosmic",
+    "pandoraNu"
+  ]
+  opdigit : [ 
+    "pmtreadout",
+    "saturation"
+  ]
+  wire : [ 
+    "caldata"
+  ]
+  partid : [ 
+    "stitchkalmanhitpid",
+    "trackkalmanhitpid",
+    "pandoraCosmicKHitpid",
+    "pandoraCosmicpid",
+    "pandoraNuKHitpid",
+    "pandoraNuPMApid",
+    "pandoraNupid",
+    "pmtrackpid"
+  ]
+  simch : [ 
+    "largeant"
+  ]
+  rawdigit : [ 
+    "daq",
+    "digitfilter"
+  ]
+  ophit : [ 
+    "ophit",
+    "ophitCosmic",
+    "ophitCosmicLow",
+    "ophitLow",
+    "ophitSat"
+  ]
+  shower : [ 
+    "showerrecofuzzy",
+    "showerrecopandora"
+  ]
+  trigger : [ 
+    "triggersim"
+  ]
+  mcpart : [ 
+    "largeant"
+  ]
+  calo : [ 
+    "stitchkalmanhitcalo",
+    "trackkalmanhitcalo",
+    "pandoraCosmicKHitcalo",
+    "pandoraCosmiccalo",
+    "pandoraNuKHitcalo",
+    "pandoraNuPMAcalo",
+    "pandoraNucalo",
+    "pmtrackcalo"
+  ]
+  opflash : [ 
+    "opflash",
+    "opflashCosmic",
+    "opflashCosmicLow",
+    "opflashLow",
+    "opflashSat",
+    "sflash",
+    "sflashSat"
+  ]
+}
+physics.analyzers.scanner.AssociationLookUpMap:
+{
+  mctruth : [ 
+    "largeant"
+  ]
+  wire : [ 
+    "gaushit",
+    "linecluster",
+    "pandoraCosmicKHitRemoval"
+  ]
+  hit : [ 
+    "pandoraCosmicKHitFlashMatch",
+    "pandoraNuKHitFlashMatch"
+  ]
+  track : [ 
+    "stitchkalmanhitcalo",
+    "trackkalmanhitcalo",
+    "stitchkalmanhitContTag",
+    "stitchkalmanhittag",
+    "trackkalmanhitContTag",
+    "trackkalmanhittag",
+    "stitchkalmanhitpid",
+    "trackkalmanhitpid",
+    "stitchkalmanhit",
+    "trackkalmanhit",
+    "pandoraCosmicKHitcalo",
+    "pandoraCosmiccalo",
+    "pandoraNuKHitcalo",
+    "pandoraNuPMAcalo",
+    "pandoraNucalo",
+    "pmtrackcalo",
+    "pandoraCosmicContTag",
+    "pandoraCosmicKHitFlashMatch",
+    "pandoraCosmicKHittag",
+    "pandoraCosmictag",
+    "pandoraNuContTag",
+    "pandoraNuKHitFlashMatch",
+    "pandoraNuKHittag",
+    "pandoraNuPMAContTag",
+    "pandoraNuPMAtag",
+    "pandoraNutag",
+    "pmtrackContTag",
+    "pmtracktag",
+    "pandoraCosmicKHitpid",
+    "pandoraCosmicpid",
+    "pandoraNuKHitpid",
+    "pandoraNuPMApid",
+    "pandoraNupid",
+    "pmtrackpid",
+    "pandoraNuPMA",
+    "pmtrack",
+    "pandoraCosmic",
+    "pandoraCosmicKHit",
+    "pandoraNu",
+    "pandoraNuKHit",
+    "pandoraTrackPFPartMatch"
+  ]
+  rawdigit : [ 
+    "gaushit",
+    "caldata",
+    "linecluster",
+    "pandoraCosmicKHitRemoval"
+  ]
+  sps : [ 
+    "stitchkalmanhit",
+    "trackkalmanhit",
+    "pandoraCosmic",
+    "pandoraCosmicKHit",
+    "pandoraNu",
+    "pandoraNuKHit",
+    "pandoraNuPMA",
+    "pmtrack"
+  ]
+  vertex : [ 
+    "pandoraNuPMA",
+    "pmtrack"
+  ]
+  shower : [ 
+    "showerrecofuzzy",
+    "showerrecopandora"
+  ]
+  cluster : [ 
+    "fuzzycluster",
+    "fuzzyclustermerger",
+    "linecluster",
+    "pandoraCosmic",
+    "pandoraNu"
+  ]
+  cosmictag : [ 
+    "pandoraCosmicKHitPFPart"
+  ]
+  pfpart : [ 
+    "trackkalmanhit",
+    "pandoraCosmicKHitPFPart",
+    "pandoraCosmic",
+    "pandoraNu",
+    "pandoraNuPMA",
+    "pmtrack",
+    "showerrecopandora",
+    "pandoraCosmicKHit",
+    "pandoraNuKHit"
+  ]
+  opflash : [ 
+    "opflash",
+    "opflashCosmic",
+    "opflashCosmicLow",
+    "opflashLow",
+    "opflashSat"
+  ]
+  seed : [ 
+    "pandoraCosmic",
+    "pandoraNu"
+  ]
+}
+physics.analyzeIt:  [ scanner ]
